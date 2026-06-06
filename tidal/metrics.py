@@ -13,6 +13,8 @@ def _group_soaa(records, key):
     hit = defaultdict(int)
     for r in records:
         k = r.get(key)
+        if k is None:
+            continue
         total[k] += 1
         if data.is_mentioned(r):
             hit[k] += 1
