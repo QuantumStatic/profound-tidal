@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import './styles.css'
 import { MONTHS, isLive } from './months'
-import { fetchRun } from './api'
+import { streamRun } from './api'
 import GapBoard from './stages/GapBoard'
 import Opportunities from './stages/Opportunities'
 import Radar from './stages/Radar'
@@ -16,6 +16,13 @@ const NAV = [
   ['move', 'Your move', 'What to publish'],
 ]
 
+const STAGE_LABELS = {
+  listen: 'Scanning AI answers…',
+  opportunity: 'Pricing the gaps…',
+  place: 'Tracing citation sources…',
+  craft: 'Drafting the brief…',
+}
+
 export default function App() {
   const [month, setMonth] = useState(6)
   const [data, setData] = useState(null)
@@ -23,10 +30,22 @@ export default function App() {
   const [counter, setCounter] = useState(0)
   const [toast, setToast] = useState('')
   const [toastOn, setToastOn] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadMsg, setLoadMsg] = useState('Starting analysis…')
+  const [loadPct, setLoadPct] = useState(0)
 
   useEffect(() => {
     setData(null)
-    fetchRun(month).then(setData)
+    setLoading(true)
+    setLoadMsg('Starting analysis…')
+    setLoadPct(0)
+    streamRun(month, (evt) => {
+      setLoadMsg(evt.message || STAGE_LABELS[evt.stage] || 'Analysing…')
+      setLoadPct(Math.round((evt.progress || 0) * 100))
+    }).then((result) => {
+      setData(result)
+      setLoading(false)
+    })
   }, [month])
 
   useEffect(() => {
@@ -47,7 +66,16 @@ export default function App() {
     setTimeout(() => setToastOn(false), 3600)
   }, [])
 
-  if (!data) return <div className="app"><p className="sub" style={{paddingTop:40}}>Loading…</p></div>
+  if (loading) return (
+    <div className="app" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'60vh',gap:18}}>
+      <div className="logo" style={{marginBottom:8}}><span className="wave">🌊</span>Tidal</div>
+      <div style={{fontSize:14,color:'var(--mut)',minHeight:20}}>{loadMsg}</div>
+      <div style={{width:320,height:6,borderRadius:4,background:'rgba(255,255,255,.08)',overflow:'hidden'}}>
+        <div style={{height:'100%',borderRadius:4,background:'linear-gradient(90deg,var(--teal),#3b82f6)',width:`${loadPct}%`,transition:'width .3s ease'}} />
+      </div>
+      <div style={{fontSize:11,color:'var(--mut)'}}>{loadPct}%</div>
+    </div>
+  )
 
   return (
     <div className="app">
