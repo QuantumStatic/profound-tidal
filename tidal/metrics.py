@@ -40,7 +40,10 @@ def detect_subject_brand(records):
     if not mentioned:
         return (None, 0.0)
     c = _brand_counter(mentioned)
-    brand, count = c.most_common(1)[0]
+    top = c.most_common(1)
+    if not top:
+        return (None, 0.0)
+    brand, count = top[0]
     return (brand, count / len(mentioned))
 
 def presence_rate(records, brand):
