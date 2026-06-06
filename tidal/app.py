@@ -27,3 +27,10 @@ def stream(month: int = 6):
         for event in pipeline.run_streamed(_records(), month=month):
             yield _sse(event)
     return StreamingResponse(gen(), media_type="text/event-stream")
+
+import os
+from fastapi.staticfiles import StaticFiles
+
+_DIST = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.isdir(_DIST):
+    app.mount("/", StaticFiles(directory=_DIST, html=True), name="static")
