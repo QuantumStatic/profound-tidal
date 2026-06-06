@@ -79,15 +79,16 @@ def ghost_mention_stats(records, subject):
 def _by_topic(records):
     groups = defaultdict(list)
     for r in records:
-        groups[r.get("topic")].append(r)
+        if r.get("topic") is not None:
+            groups[r["topic"]].append(r)
     return groups
 
 def sentiment_topics(records):
     """Topics that carry sentiment analysis (type contains 'Sentiment')."""
     flagged = set()
     for r in records:
-        if "Sentiment" in (r.get("type") or ""):
-            flagged.add(r.get("topic"))
+        if "Sentiment" in (r.get("type") or "") and r.get("topic") is not None:
+            flagged.add(r["topic"])
     return flagged
 
 def gap_board(records, subject):
