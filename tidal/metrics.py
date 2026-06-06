@@ -1,5 +1,5 @@
 # tidal/metrics.py
-from collections import defaultdict
+from collections import Counter, defaultdict
 from tidal import data
 
 def soaa(records):
@@ -25,3 +25,34 @@ def soaa_by_topic(records):
 
 def soaa_by_platform(records):
     return _group_soaa(records, "platform")
+
+def _brand_counter(records):
+    """Per-record set of normalized_mentions tokens, counted across records."""
+    c = Counter()
+    for r in records:
+        for tok in set(data.tokens(r.get("normalized_mentions"))):
+            c[tok] += 1
+    return c
+
+def detect_subject_brand(records):
+    """The entity present in ~100% of mentioned records. Returns (brand, confidence)."""
+    mentioned = [r for r in records if data.is_mentioned(r)]
+    if not mentioned:
+        return (None, 0.0)
+    c = _brand_counter(mentioned)
+    brand, count = c.most_common(1)[0]
+    return (brand, count / len(mentioned))
+
+def presence_rate(records, brand):
+    if not records:
+        return 0.0
+    n = sum(1 for r in records if brand in set(data.tokens(r.get("normalized_mentions"))))
+    return n / len(records)
+
+def category_leader(records, subject):
+    c = _brand_counter(records)
+    ranked = [(b, n) for b, n in c.most_common() if b != subject]
+    if not ranked:
+        return (None, 0.0)
+    brand = ranked[0][0]
+    return (brand, presence_rate(records, brand))

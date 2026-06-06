@@ -23,3 +23,19 @@ def test_soaa_known_anchors(records):
 
 def test_soaa_by_platform_count(records):
     assert len(metrics.soaa_by_platform(records)) == 7
+
+def test_detect_subject_brand(records):
+    brand, confidence = metrics.detect_subject_brand(records)
+    assert brand == "OpenAI"
+    assert confidence > 0.95
+
+def test_presence_rate(records):
+    rate = metrics.presence_rate(records, "OpenAI")
+    assert 0.0 <= rate <= 1.0
+    assert rate >= metrics.soaa(records) - 1e-9
+
+def test_category_leader_excludes_subject(records):
+    leader, rate = metrics.category_leader(records, subject="OpenAI")
+    assert leader != "OpenAI"
+    assert leader == "Claude"
+    assert 0.0 <= rate <= 1.0
