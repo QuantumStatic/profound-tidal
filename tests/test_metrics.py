@@ -39,3 +39,36 @@ def test_category_leader_excludes_subject(records):
     assert leader != "OpenAI"
     assert leader == "Claude"
     assert 0.0 <= rate <= 1.0
+
+def test_ghost_mentions_nonnegative(records):
+    g = metrics.ghost_mention_stats(records, subject="OpenAI")
+    assert g["reported_soaa"] == pytest.approx(metrics.soaa(records), abs=1e-9)
+    assert g["true_soaa"] >= g["reported_soaa"]
+    assert g["ghost_count"] >= 0
+
+def test_ghost_mentions_synthetic():
+    recs = [
+        {"mentioned?": "Yes", "normalized_mentions": "OpenAI, Claude"},
+        {"mentioned?": "No",  "normalized_mentions": "OpenAI"},      # ghost
+        {"mentioned?": "No",  "normalized_mentions": "Claude"},      # not a ghost
+    ]
+    g = metrics.ghost_mention_stats(recs, subject="OpenAI")
+    assert g["ghost_count"] == 1
+    assert g["reported_soaa"] == pytest.approx(1/3)
+    assert g["true_soaa"] == pytest.approx(2/3)
+
+def test_gap_board_shape(records):
+    board = metrics.gap_board(records, subject="OpenAI")
+    assert len(board) == 15
+    row = next(r for r in board if r["topic"] == "Support")
+    assert row["you"] < row["leader_rate"]          # invisible vs rival
+    assert row["leader"] != "OpenAI"
+    assert 0.0 <= row["you"] <= 1.0
+    # sorted ascending by `you` so the worst gaps come first
+    yous = [r["you"] for r in board]
+    assert yous == sorted(yous)
+
+def test_sentiment_lens_returns_topics(records):
+    flags = metrics.sentiment_topics(records)
+    assert isinstance(flags, set)
+    assert flags.issubset(set(data.distinct(records, "topic")))
