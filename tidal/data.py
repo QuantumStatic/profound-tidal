@@ -7,8 +7,13 @@ def load_json(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
+_primary_cache: list | None = None
+
 def load_primary():
-    return load_json(config.PRIMARY_DATA)
+    global _primary_cache
+    if _primary_cache is None:
+        _primary_cache = load_json(config.PRIMARY_DATA)
+    return _primary_cache
 
 def distinct(records, key):
     return sorted({r.get(key) for r in records if r.get(key) is not None})
@@ -19,13 +24,15 @@ def tokens(comma_str):
     return [t.strip() for t in comma_str.split(",") if t.strip()]
 
 def _norm_host(url):
+    if not url or not isinstance(url, str):
+        return None
     try:
         host = urlparse(url).netloc.lower()
+        if host.startswith("www."):
+            host = host[4:]
+        return host or None
     except Exception:
         return None
-    if host.startswith("www."):
-        host = host[4:]
-    return host or None
 
 def citation_domains(record):
     domains = set()
